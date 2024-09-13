@@ -216,6 +216,19 @@ jobs:
               --toolchain=llvm18
               --skip-sanitizers
               --lto=full
+          
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 22.04 - aarch64
+          # ---------------------------------------------------------------------------------------
+
+          - name: ubuntu2204-aarch64-gcc11
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_aarch64:v2024-07-09T20_20_50
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-11
+
 
     steps:
       - name: Increase disk space
