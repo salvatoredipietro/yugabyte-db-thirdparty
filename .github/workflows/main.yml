@@ -1,0 +1,252 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+      # Not all of these branches might exist.
+      - 2.4
+      - 2.6
+      - 2.8
+      - 2.10
+      - 2.12
+      - 2.14
+      - 2.16
+      - 2.17.3
+      - 2.18
+    paths-ignore:
+      - README.md
+
+  # Run tests for any PRs.
+  pull_request:
+    branches:
+      - master
+      - 2.14
+      - 2.16
+      - 2.17.3
+      - 2.18
+
+    paths-ignore:
+      - README.md
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    if: >
+      (github.event_name == 'push' &&
+       !contains(github.event.head_commit.message, 'skip ci') &&
+       !contains(github.event.head_commit.message, 'ci skip') &&
+       !contains(github.event.head_commit.message, 'skip github actions')) ||
+      github.event_name == 'pull_request'
+    strategy:
+      # To avoid terminating all jobs when one job fails.
+      fail-fast: false
+      matrix:
+        include:
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 20.04
+          # ---------------------------------------------------------------------------------------
+          - name: ubuntu2004-x86_64-clang16
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2004_x86_64:v2023-10-25T03_33_01
+            build_thirdparty_args: >-
+              --toolchain=llvm16
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 22.04
+          # ---------------------------------------------------------------------------------------
+
+          - name: ubuntu2204-x86_64-gcc11
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-11
+            architecture: x86_64
+
+          - name: ubuntu2204-x86_64-clang17
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # Amazon Linux 2 -- the next oldest glibc after CentOS 7's EOL
+          # ---------------------------------------------------------------------------------------
+
+          # Clang 17
+          - name: amzn2-x86_64-clang17
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+            architecture: x86_64
+
+          - name: amzn2-x86_64-clang17-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --lto=full
+            architecture: x86_64
+
+          # Clang 18
+          # TODO: enable ASAN/TSAN for Clang 18.
+          - name: amzn2-x86_64-clang18
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --skip-sanitizers
+            architecture: x86_64
+
+          - name: amzn2-x86_64-clang18-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --lto=full
+              --skip-sanitizers
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # AlmaLinux 8
+          # ---------------------------------------------------------------------------------------
+
+          - name: almalinux8-x86_64-gcc11
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            build_thirdparty_args: >-
+              --devtoolset=11
+            architecture: x86_64
+
+          # Clang/LLVM 17
+          - name: almalinux8-x86_64-clang17
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+            architecture: x86_64
+
+          # Clang/LLVM 18
+          # TODO: enable ASAN/TSAN for Clang 18.
+          - name: almalinux8-x86_64-clang18
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --skip-sanitizers
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 23.04
+          # ---------------------------------------------------------------------------------------
+
+          - name: ubuntu2304-x86_64-gcc13
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2304_x86_64:v2023-10-25T03_33_00
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-suffix=-13
+              --compiler-family=gcc
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # AlmaLinux 9
+          # ---------------------------------------------------------------------------------------
+
+          - name: almalinux9-x86_64-gcc12
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-10-25T03_33_02
+            build_thirdparty_args: >-
+              --devtoolset=12
+            architecture: x86_64
+
+          - name: almalinux9-x86_64-clang17
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-10-25T03_33_02
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # macOS
+          # ---------------------------------------------------------------------------------------
+
+          - name: macos-x86_64
+            os: macos-12
+            docker_image:
+            build_thirdparty_args:
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # aarch64 builds (Amazon Linux 2)
+          # ---------------------------------------------------------------------------------------
+
+          - name: amzn2-aarch64-clang17
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --skip-sanitizers
+
+          - name: amzn2-aarch64-clang17-full-lto
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --skip-sanitizers
+              --lto=full
+
+          - name: amzn2-aarch64-clang18
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --skip-sanitizers
+
+          - name: amzn2-aarch64-clang18-full-lto
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --skip-sanitizers
+              --lto=full
+
+    steps:
+      - name: Increase disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+      - name: Clone repository
+        uses: actions/checkout@v2
+        with:
+          # We need to fetch all history because we are cloning the checkout directory further
+          # in test code.
+          fetch-depth: 0
+
+      - name: Build
+        run: .github/workflows/github_actions_build.sh
+        env:
+          YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
+          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}
+          YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
+          path: archive.tar.gz
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz.sha256
+          path: archive.tar.gz.sha256
